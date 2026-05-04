@@ -136,19 +136,82 @@ def _run_main_menu(stdScreen: "curses.window") -> int:
             curses.update_lines_cols()
 
 
-def _handle_play_placeholder(stdScreen: "curses.window"):
+def _load_fake_map() -> list[list[str]]:
     """
-    Displays a placeholder loading screen for the game.
+    Generates a static 2D grid representing a city map.
+    This is intended to be a placeholder map.
+
+    Parameters:
+      None
+    Returns:
+      list[list[str]]: A 2D list of map characters.
+    """
+    rawMap = [
+        "...........................",
+        "....#######.....#######....",
+        "....#######.....#######....",
+        "...........................",
+        "....#######................",
+        "....#######.......#####....",
+        "..................#####....",
+        "...........................",
+    ]
+
+    return [list(row) for row in rawMap]
+
+
+def _draw_map(stdScreen: "curses.window", mapGrid: list[list[str]]):
+    """
+    Iterates through the map matrix and renders it on screen.
+
+    Parameters:
+      stdScreen ("curses.window"): The standard screen object.
+      mapGrid (list[list[str]]): The 2D array of map characters.
+    Returns: None
+    """
+    # Define map dimensions
+    mapHeight = len(mapGrid)
+    mapWidth = len(mapGrid[0]) if mapHeight > 0 else 0
+
+    # Center the entire grid
+    startY, startX = _get_centered_coords(stdScreen, mapWidth, -(mapHeight // 2))
+
+    # Iterate through the matrix and render the map
+    for rIndex, row in enumerate(mapGrid):
+        for cIndex, char in enumerate(row):
+            stdScreen.addstr(startY + rIndex, startX + cIndex, char)
+
+
+def _run_game_loop(stdScreen: "curses.window"):
+    """
+    Handles the active game view state and map rendering.
 
     Parameters:
       stdScreen ("curses.window"): The standard screen object.
     Returns:
       None
     """
-    stdScreen.clear()
-    stdScreen.addstr(5, 5, "Game is loading... (Press any key to return to menu)")
-    stdScreen.refresh()
-    stdScreen.getch()
+    mapGrid = _load_fake_map()
+
+    while True:
+        stdScreen.clear()
+        _draw_map(stdScreen, mapGrid)
+
+        # Temporary exit instruction until Pause Menu is implemented
+        instruction = "Press [ESC] to return to menu"
+        y, x = _get_centered_coords(
+            stdScreen, len(instruction), (len(mapGrid) // 2) + 2
+        )
+        stdScreen.addstr(y, x, instruction)
+
+        stdScreen.refresh()
+        keyPressed = stdScreen.getch()
+
+        # 27 is the standard ASCII code for the Escape key
+        if keyPressed == 27:
+            break
+        elif keyPressed == curses.KEY_RESIZE:
+            curses.update_lines_cols()
 
 
 def main(stdScreen: "curses.window"):
@@ -169,7 +232,7 @@ def main(stdScreen: "curses.window"):
 
         # 0 for PLAY
         if selectionIndex == 0:
-            _handle_play_placeholder(stdScreen)
+            _run_game_loop(stdScreen)
         # 1 for QUIT
         elif selectionIndex == 1:
             if _run_confirm_exit(stdScreen):
