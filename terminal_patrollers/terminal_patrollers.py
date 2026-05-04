@@ -89,7 +89,6 @@ def _run_main_menu(stdScreen: "curses.window") -> int:
 
     while True:
         stdScreen.clear()
-        maxY, maxX = stdScreen.getmaxyx()
 
         title = "TERMINAL PATROLLERS"
         desc = "A fun stealth game mapped directly to real-world city streets!"
