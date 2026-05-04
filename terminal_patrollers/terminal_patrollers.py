@@ -1,6 +1,26 @@
 import curses
 
 
+def _get_centered_coords(
+    stdScreen: "curses.window", textLen: int, offsetY: int = 0
+) -> tuple[int, int]:
+    """
+    Calculates the Y and X coordinates to center text on the screen.
+
+    Parameters:
+      stdScreen ("curses.window"): The window object.
+      textLen (int): Length of the text to be centered.
+      offsetY (int): Vertical offset from the absolute center.
+    Returns:
+      tuple[int, int]: The calculated (y, x) coordinates.
+    """
+    maxY, maxX = stdScreen.getmaxyx()
+    x = (maxX - textLen) // 2
+    y = (maxY // 2) + offsetY
+
+    return y, x
+
+
 def _run_confirm_exit(stdScreen: "curses.window") -> bool:
     """
     Prompts the user to confirm exiting via an interactive menu.
@@ -16,19 +36,26 @@ def _run_confirm_exit(stdScreen: "curses.window") -> bool:
     while True:
         stdScreen.clear()
 
-        stdScreen.addstr(5, 5, "WARNING: EXIT GAME?", curses.A_BOLD)
-        stdScreen.addstr(6, 5, "Are you sure you want to quit?")
+        warnTitle = "WARNING: EXIT GAME?"
+        warnDesc = "Are you sure you want to quit?"
 
-        # Highlight selection
+        # Add exit confirmation text
+        y, x = _get_centered_coords(stdScreen, len(warnTitle), -2)
+        stdScreen.addstr(y, x, warnTitle, curses.A_BOLD)
+        y, x = _get_centered_coords(stdScreen, len(warnDesc), -1)
+        stdScreen.addstr(y, x, warnDesc)
+
+        # Render options and highlight selections
         for i, option in enumerate(options):
-            x = 5
-            y = 8 + i
+            label = f"> {option}" if i == currentSelection else f"  {option}"
+            y, x = _get_centered_coords(stdScreen, len(label), 1 + i)
+
             if i == currentSelection:
                 stdScreen.attron(curses.A_REVERSE)
-                stdScreen.addstr(y, x, f"> {option}")
+                stdScreen.addstr(y, x, label)
                 stdScreen.attroff(curses.A_REVERSE)
             else:
-                stdScreen.addstr(y, x, f"  {option}")
+                stdScreen.addstr(y, x, label)
 
         stdScreen.refresh()
         keyPressed = stdScreen.getch()
@@ -38,9 +65,14 @@ def _run_confirm_exit(stdScreen: "curses.window") -> bool:
             currentSelection = max(0, currentSelection - 1)
         elif keyPressed in (curses.KEY_DOWN, ord("s"), ord("S")):
             currentSelection = min(len(options) - 1, currentSelection + 1)
+
         # Handle ENTER key (10 and 13 cover various terminal environments)
         elif keyPressed in (curses.KEY_ENTER, 10, 13):
             return currentSelection == 0
+
+        # Handle terminal window resizing
+        elif keyPressed == curses.KEY_RESIZE:
+            curses.update_lines_cols()
 
 
 def _run_main_menu(stdScreen: "curses.window") -> int:
@@ -57,29 +89,35 @@ def _run_main_menu(stdScreen: "curses.window") -> int:
 
     while True:
         stdScreen.clear()
+        maxY, maxX = stdScreen.getmaxyx()
 
-        stdScreen.addstr(2, 5, "TERMINAL PATROLLERS", curses.A_BOLD)
-        stdScreen.addstr(
-            4, 5, "A fun stealth game mapped directly to real-world city streets!"
-        )
-        stdScreen.addstr(
-            6,
-            5,
-            "NOTE: Requires an active microservice network connection. "
-            "Average match duration is 3 to 5 minutes.",
-            curses.A_DIM,
-        )
+        title = "TERMINAL PATROLLERS"
+        desc = "A fun stealth game mapped directly to real-world city streets!"
+        costNote = "NOTE: Requires an active microservice network connection."
 
-        # Highlight selection
+        # Add title
+        y, x = _get_centered_coords(stdScreen, len(title), -4)
+        stdScreen.addstr(y, x, title, curses.A_BOLD)
+
+        # Add description
+        y, x = _get_centered_coords(stdScreen, len(desc), -2)
+        stdScreen.addstr(y, x, desc)
+
+        # Add cost note
+        y, x = _get_centered_coords(stdScreen, len(costNote), 0)
+        stdScreen.addstr(y, x, costNote, curses.A_DIM)
+
+        # Render options and highlight selections
         for i, option in enumerate(options):
-            x = 5
-            y = 9 + i
+            label = f"> {option}" if i == currentSelection else f"  {option}"
+            y, x = _get_centered_coords(stdScreen, len(label), 3 + i)
+
             if i == currentSelection:
                 stdScreen.attron(curses.A_REVERSE)
-                stdScreen.addstr(y, x, f"> {option}")
+                stdScreen.addstr(y, x, label)
                 stdScreen.attroff(curses.A_REVERSE)
             else:
-                stdScreen.addstr(y, x, f"  {option}")
+                stdScreen.addstr(y, x, label)
 
         stdScreen.refresh()
         keyPressed = stdScreen.getch()
@@ -93,6 +131,10 @@ def _run_main_menu(stdScreen: "curses.window") -> int:
         # Handle ENTER key (10 and 13 cover various terminal environments)
         elif keyPressed in (curses.KEY_ENTER, 10, 13):
             return currentSelection
+
+        # Handle terminal window resizing
+        elif keyPressed == curses.KEY_RESIZE:
+            curses.update_lines_cols()
 
 
 def _handle_play_placeholder(stdScreen: "curses.window"):
