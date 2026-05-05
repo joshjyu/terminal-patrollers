@@ -1,4 +1,5 @@
 import curses
+import random
 
 
 def _get_centered_coords(
@@ -188,6 +189,77 @@ def _calculate_new_pos(
     return newY, newX
 
 
+def _generate_patrollers(
+    mapGrid: list[list[str]], numPatrollers: int
+) -> list[tuple[int, int]]:
+    """
+    Generates a list of valid starting coordinates for patrollers.
+
+    Parameters:
+      mapGrid (list[list[str]]): The map matrix.
+      numPatrollers (int): The number of patrollers to spawn.
+    Returns:
+      list[tuple[int, int]]: A list of (Y, X) coordinate tuples.
+    """
+    # Initialize list of patrollers
+    patrollers = []
+    maxY = len(mapGrid)
+    maxX = len(mapGrid[0]) if maxY > 0 else 0
+
+    while len(patrollers) < numPatrollers:
+        # Random generation is a placeholder until improved game design
+        randY = random.randint(0, maxY - 1)
+        randX = random.randint(0, maxX - 1)
+
+        # Compress conditionals to ensure patrollers spawn on empty streets
+        isEmpty = mapGrid[randY][randX] == "."
+        isStart = randY == 0 and randX == 0
+
+        if isEmpty and not isStart and (randY, randX) not in patrollers:
+            patrollers.append((randY, randX))
+
+    return patrollers
+
+
+def _draw_hud(
+    stdScreen: "curses.window",
+    mapGrid: list[list[str]],
+    playerY: int,
+    playerX: int,
+    numPatrollers: int,
+):
+    """
+    Renders the heads-up display (HUD) below the active game map.
+
+    Parameters:
+      stdScreen ("curses.window"): The standard screen object.
+      mapGrid (list[list[str]]): The 2D array of map characters.
+      playerY (int): The player's current row coordinate.
+      playerX (int): The player's current column coordinate.
+      numPatrollers (int): The number of active patrollers.
+    Returns:
+      None
+    """
+    mapHeight = len(mapGrid)
+
+    # HUD's minimal necessary information
+    coordsText = f"COORDS: {playerX}, {playerY}"
+    enemyText = f"PATROLLERS ACTIVE: {numPatrollers}"
+
+    # Add coordinate HUD text
+    y, x = _get_centered_coords(stdScreen, len(coordsText), (mapHeight // 2) + 2)
+    stdScreen.addstr(y, x, coordsText)
+
+    # Add patroller count HUD text
+    y, x = _get_centered_coords(stdScreen, len(enemyText), (mapHeight // 2) + 3)
+    stdScreen.addstr(y, x, enemyText)
+
+    # Backtracking and pause options
+    instructTxt = "[R] Restart Run  |  [ESC] Pause Menu"
+    y, x = _get_centered_coords(stdScreen, len(instructTxt), (mapHeight // 2) + 5)
+    stdScreen.addstr(y, x, instructTxt, curses.A_DIM)
+
+
 def _load_fake_map() -> list[list[str]]:
     """
     Generates a static 2D grid representing a city map.
@@ -213,7 +285,11 @@ def _load_fake_map() -> list[list[str]]:
 
 
 def _draw_map(
-    stdScreen: "curses.window", mapGrid: list[list[str]], playerY: int, playerX: int
+    stdScreen: "curses.window",
+    mapGrid: list[list[str]],
+    playerY: int,
+    playerX: int,
+    patrollers: list[tuple[int, int]],
 ):
     """
     Iterates through the map matrix and renders it on screen.
@@ -223,6 +299,7 @@ def _draw_map(
       mapGrid (list[list[str]]): The 2D array of map characters.
       playerY (int): The player's row coordinate.
       playerX (int): The player's column coordinate.
+      patrollers (list[tuple[int, int]]): List of patroller coordinates.
     Returns:
       None
     """
@@ -233,8 +310,17 @@ def _draw_map(
 
     for rIndex, row in enumerate(mapGrid):
         for cIndex, char in enumerate(row):
-            # Conditionally render the player avatar
-            drawChar = "@" if rIndex == playerY and cIndex == playerX else char
+            isPlayer = rIndex == playerY and cIndex == playerX
+            isPatroller = (rIndex, cIndex) in patrollers
+
+            # Prioritize rendering the player over a patroller if they overlap
+            if isPlayer:
+                drawChar = "@"
+            elif isPatroller:
+                drawChar = "P"
+            else:
+                drawChar = char
+
             stdScreen.addstr(startY + rIndex, startX + cIndex, drawChar)
 
 
@@ -248,32 +334,32 @@ def _run_game_loop(stdScreen: "curses.window"):
       None
     """
     mapGrid = _load_fake_map()
+
+    # Player starts at top left of map
     playerY = 0
     playerX = 0
 
+    # Generates 3 patrollers
+    patrollerCount = 3
+    patrollers = _generate_patrollers(mapGrid, patrollerCount)
+
     while True:
         stdScreen.clear()
-        _draw_map(stdScreen, mapGrid, playerY, playerX)
 
-        # Movement info in the status bar
-        navText = "Move: [W][A][S][D] or [ARROW KEYS]"
-        y, x = _get_centered_coords(stdScreen, len(navText), (len(mapGrid) // 2) + 2)
-        stdScreen.addstr(y, x, navText, curses.A_DIM)
-
-        # Escape instructions in the status bar
-        # Placeholder until pause menu implemented
-        instruction = "Press [ESC] to return to menu"
-        y, x = _get_centered_coords(
-            stdScreen, len(instruction), (len(mapGrid) // 2) + 3
-        )
-        stdScreen.addstr(y, x, instruction, curses.A_DIM)
+        _draw_map(stdScreen, mapGrid, playerY, playerX, patrollers)
+        _draw_hud(stdScreen, mapGrid, playerY, playerX, len(patrollers))
 
         stdScreen.refresh()
         keyPressed = stdScreen.getch()
 
-        # 27 is the standard ASCII code for the Escape key
-        if keyPressed == 27:
+        # [ESC] to Quit (Placeholder for Pause Menu)
+        if keyPressed == 27:  # 27 is standard ASCII code for Escape key
             break
+        # [R] to Restart
+        elif keyPressed in (ord("r"), ord("R")):
+            playerY = 0
+            playerX = 0
+            patrollers = _generate_patrollers(mapGrid, patrollerCount)
         elif keyPressed == curses.KEY_RESIZE:
             curses.update_lines_cols()
         else:
