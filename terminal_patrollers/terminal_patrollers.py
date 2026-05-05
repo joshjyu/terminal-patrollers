@@ -2,6 +2,30 @@ import curses
 import random
 
 
+def _initialize_colors(stdScreen: "curses.window"):
+    """
+    Initializes high-contrast color pairs and sets the global window background.
+
+    Parameters: None
+    Returns: None
+    """
+    curses.start_color()
+    curses.use_default_colors()
+
+    # Define high-contrast pairs (Foreground, Background)
+    # Pair 1: Map elements and standard text
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+    # Pair 2: Player avatar @
+    curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+
+    # Pair 3: Patroller avatar P
+    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+
+    # Set entire window to use Pair 1
+    stdScreen.bkgd(curses.color_pair(1))
+
+
 def _get_centered_coords(
     stdScreen: "curses.window", textLen: int, offsetY: int = 0
 ) -> tuple[int, int]:
@@ -242,22 +266,25 @@ def _draw_hud(
     """
     mapHeight = len(mapGrid)
 
+    # Define base colors
+    baseColor = curses.color_pair(1) | curses.A_BOLD
+
     # HUD's minimal necessary information
     coordsText = f"COORDS: {playerX}, {playerY}"
     enemyText = f"PATROLLERS ACTIVE: {numPatrollers}"
 
     # Add coordinate HUD text
     y, x = _get_centered_coords(stdScreen, len(coordsText), (mapHeight // 2) + 2)
-    stdScreen.addstr(y, x, coordsText)
+    stdScreen.addstr(y, x, coordsText, baseColor)
 
     # Add patroller count HUD text
     y, x = _get_centered_coords(stdScreen, len(enemyText), (mapHeight // 2) + 3)
-    stdScreen.addstr(y, x, enemyText)
+    stdScreen.addstr(y, x, enemyText, baseColor)
 
     # Backtracking and pause options
     instructTxt = "[R] Restart Run  |  [ESC] Pause Menu"
     y, x = _get_centered_coords(stdScreen, len(instructTxt), (mapHeight // 2) + 5)
-    stdScreen.addstr(y, x, instructTxt, curses.A_DIM)
+    stdScreen.addstr(y, x, instructTxt, baseColor)
 
 
 def _load_fake_map() -> list[list[str]]:
@@ -306,6 +333,11 @@ def _draw_map(
     mapHeight = len(mapGrid)
     mapWidth = len(mapGrid[0]) if mapHeight > 0 else 0
 
+    # Get color pairs
+    baseColor = curses.color_pair(1) | curses.A_BOLD
+    playerColor = curses.color_pair(2) | curses.A_BOLD
+    enemyColor = curses.color_pair(3) | curses.A_BOLD
+
     startY, startX = _get_centered_coords(stdScreen, mapWidth, -(mapHeight // 2))
 
     for rIndex, row in enumerate(mapGrid):
@@ -316,12 +348,15 @@ def _draw_map(
             # Prioritize rendering the player over a patroller if they overlap
             if isPlayer:
                 drawChar = "@"
+                attr = playerColor
             elif isPatroller:
                 drawChar = "P"
+                attr = enemyColor
             else:
                 drawChar = char
+                attr = baseColor
 
-            stdScreen.addstr(startY + rIndex, startX + cIndex, drawChar)
+            stdScreen.addstr(startY + rIndex, startX + cIndex, drawChar, attr)
 
 
 def _run_game_loop(stdScreen: "curses.window"):
@@ -381,6 +416,7 @@ def main(stdScreen: "curses.window"):
     """
     curses.curs_set(0)  # Hide cursor
     stdScreen.keypad(True)  # Enable escape sequences
+    _initialize_colors(stdScreen)  # Initialize high-contrast colors
 
     while True:
         # Enter main menu
