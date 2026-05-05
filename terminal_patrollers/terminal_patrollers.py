@@ -136,6 +136,58 @@ def _run_main_menu(stdScreen: "curses.window") -> int:
             curses.update_lines_cols()
 
 
+def _is_valid_move(mapGrid: list[list[str]], targetY: int, targetX: int) -> bool:
+    """
+    Checks if the target coordinate is a valid movement space.
+
+    Parameters:
+      mapGrid (list[list[str]]): The map matrix.
+      targetY (int): Target row index.
+      targetX (int): Target column index.
+    Returns:
+      bool: True if the move is valid, False otherwise.
+    """
+    maxY = len(mapGrid)
+    maxX = len(mapGrid[0]) if maxY > 0 else 0
+
+    # Compress conditionals for bounds and wall collisions
+    inBounds = 0 <= targetY < maxY and 0 <= targetX < maxX
+
+    return inBounds and mapGrid[targetY][targetX] != "#"
+
+
+def _calculate_new_pos(
+    keyPressed: int, currentY: int, currentX: int
+) -> tuple[int, int]:
+    """
+    Calculates the new coordinates based on the movement key pressed.
+
+    Parameters:
+      keyPressed (int): The ASCII or curses key code.
+      currentY (int): The current row coordinate.
+      currentX (int): The current column coordinate.
+    Returns:
+      tuple[int, int]: The potentially updated (Y, X) coordinates.
+    """
+    newY = currentY
+    newX = currentX
+
+    # W or Arrow Up
+    if keyPressed in (curses.KEY_UP, ord("w"), ord("W")):
+        newY -= 1
+    # S or Arrow Down
+    elif keyPressed in (curses.KEY_DOWN, ord("s"), ord("S")):
+        newY += 1
+    # A or Arrow Left
+    elif keyPressed in (curses.KEY_LEFT, ord("a"), ord("A")):
+        newX -= 1
+    # D or Arrow Right
+    elif keyPressed in (curses.KEY_RIGHT, ord("d"), ord("D")):
+        newX += 1
+
+    return newY, newX
+
+
 def _load_fake_map() -> list[list[str]]:
     """
     Generates a static 2D grid representing a city map.
@@ -160,26 +212,30 @@ def _load_fake_map() -> list[list[str]]:
     return [list(row) for row in rawMap]
 
 
-def _draw_map(stdScreen: "curses.window", mapGrid: list[list[str]]):
+def _draw_map(
+    stdScreen: "curses.window", mapGrid: list[list[str]], playerY: int, playerX: int
+):
     """
     Iterates through the map matrix and renders it on screen.
 
     Parameters:
       stdScreen ("curses.window"): The standard screen object.
       mapGrid (list[list[str]]): The 2D array of map characters.
-    Returns: None
+      playerY (int): The player's row coordinate.
+      playerX (int): The player's column coordinate.
+    Returns:
+      None
     """
-    # Define map dimensions
     mapHeight = len(mapGrid)
     mapWidth = len(mapGrid[0]) if mapHeight > 0 else 0
 
-    # Center the entire grid
     startY, startX = _get_centered_coords(stdScreen, mapWidth, -(mapHeight // 2))
 
-    # Iterate through the matrix and render the map
     for rIndex, row in enumerate(mapGrid):
         for cIndex, char in enumerate(row):
-            stdScreen.addstr(startY + rIndex, startX + cIndex, char)
+            # Conditionally render the player avatar
+            drawChar = "@" if rIndex == playerY and cIndex == playerX else char
+            stdScreen.addstr(startY + rIndex, startX + cIndex, drawChar)
 
 
 def _run_game_loop(stdScreen: "curses.window"):
@@ -192,17 +248,25 @@ def _run_game_loop(stdScreen: "curses.window"):
       None
     """
     mapGrid = _load_fake_map()
+    playerY = 0
+    playerX = 0
 
     while True:
         stdScreen.clear()
-        _draw_map(stdScreen, mapGrid)
+        _draw_map(stdScreen, mapGrid, playerY, playerX)
 
-        # Temporary exit instruction until Pause Menu is implemented
+        # Movement info in the status bar
+        navText = "Move: [W][A][S][D] or [ARROW KEYS]"
+        y, x = _get_centered_coords(stdScreen, len(navText), (len(mapGrid) // 2) + 2)
+        stdScreen.addstr(y, x, navText, curses.A_DIM)
+
+        # Escape instructions in the status bar
+        # Placeholder until pause menu implemented
         instruction = "Press [ESC] to return to menu"
         y, x = _get_centered_coords(
-            stdScreen, len(instruction), (len(mapGrid) // 2) + 2
+            stdScreen, len(instruction), (len(mapGrid) // 2) + 3
         )
-        stdScreen.addstr(y, x, instruction)
+        stdScreen.addstr(y, x, instruction, curses.A_DIM)
 
         stdScreen.refresh()
         keyPressed = stdScreen.getch()
@@ -212,6 +276,12 @@ def _run_game_loop(stdScreen: "curses.window"):
             break
         elif keyPressed == curses.KEY_RESIZE:
             curses.update_lines_cols()
+        else:
+            # Calculate and validate player movement
+            newY, newX = _calculate_new_pos(keyPressed, playerY, playerX)
+            if _is_valid_move(mapGrid, newY, newX):
+                playerY = newY
+                playerX = newX
 
 
 def main(stdScreen: "curses.window"):
