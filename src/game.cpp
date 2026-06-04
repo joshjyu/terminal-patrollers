@@ -124,7 +124,7 @@ void runPatrollers(std::vector<Patroller> &patrollers,
 
     while (running) {
         // Sleep before lock to prevent holding a mutex while sleeping
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(600));
 
         std::lock_guard<std::mutex> lock(mtx);
         for (auto &p : patrollers) {
