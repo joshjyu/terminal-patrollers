@@ -137,8 +137,15 @@ void initializeColors() {
     start_color();
     use_default_colors();
 
+    // If user's terminal can change colors,
+    // define white and black
+    if (can_change_color()) {
+        init_color(COLOR_BLACK, 0, 0, 0);
+        init_color(COLOR_WHITE, 1000, 1000, 1000);
+    }
+
     // Pair 1: Map elements and standard text
-    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(1, COLOR_BLACK, COLOR_WHITE);
     // Pair 2: Player avatar @
     init_pair(2, COLOR_YELLOW, COLOR_BLACK);
     // Pair 3: Patroller avatar P
