@@ -47,14 +47,14 @@ int main() {
             // Main game loop
             while (true) {
                 getmaxyx(stdscr, maxY, maxX);
-                // Camera tracking, centers on player
-                int originY = (maxY / 2) - player.y;
-                int originX = (maxX / 2) - player.x;
+                int originY = (maxY - (int)map.size()) / 2;
+                int originX = (maxX - (int)map[0].size()) / 2;
 
                 erase();
 
                 renderMap(map, originY, originX);
 
+                // Lock patroller thread to write patroller movement
                 {
                     std::lock_guard<std::mutex> lock(patrollerMtx);
                     for (const auto &p : patrollers) {
