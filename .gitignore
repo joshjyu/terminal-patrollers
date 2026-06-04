@@ -6,3 +6,5 @@
 /src/compile_commands.json
 /.clangd
 terminal_patrollers
+old_python_code/terminal_patrollers.py
+old_python_code/__init__.py
