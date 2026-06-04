@@ -21,15 +21,17 @@ int main() {
         if (selection == 0) {
             const auto &map = getTestMap();
             int maxY, maxX;
-            getmaxyx(stdscr, maxY, maxX);
-            // Centers the map in the terminal
-            int originY = (maxY - (int)map.size()) / 2;
-            int originX = (maxX - (int)map[0].size()) / 2;
 
             Player player = {2, 2}; // Player's avatar origin
 
             while (true) {
+                getmaxyx(stdscr, maxY, maxX);
+                // Camera tracking, centers on player
+                int originY = (maxY / 2) - player.y;
+                int originX = (maxX / 2) - player.x;
+
                 erase();
+
                 renderMap(map, originY, originX);
 
                 // Render avatar
@@ -41,13 +43,7 @@ int main() {
 
                 int key = getch();
                 if (key == 27) break; // ESC returns to main menu
-
-                if (key == KEY_RESIZE) {
-                    getmaxyx(stdscr, maxY, maxX);
-                    originY = (maxY - (int)map.size()) / 2;
-                    originX = (maxX - (int)map[0].size()) / 2;
-                    continue;
-                }
+                if (key == KEY_RESIZE) continue;
 
                 // New avatar position after step
                 auto [newY, newX] = calculateNewPos(key, player.y, player.x);
