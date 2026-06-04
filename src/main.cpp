@@ -1,6 +1,9 @@
 #include "game.h"
 #include "ui.h"
+#include <functional>
+#include <mutex>
 #include <ncurses.h>
+#include <thread>
 
 /// @brief App entry point.
 ///
@@ -22,6 +25,17 @@ int main() {
             const auto &map = getTestMap();
             int maxY, maxX;
 
+            // Generate patrollers
+            std::vector<Patroller> patrollers = {{5, 5}, {15, 15}, {25, 3}};
+            std::mutex patrollerMtx;
+            std::atomic<bool> patrollerRunning{true};
+
+            std::thread patrollerThread(runPatrollers,
+                                        std::ref(patrollers),
+                                        std::ref(patrollerMtx),
+                                        std::ref(map),
+                                        std::ref(patrollerRunning));
+
             Player player = {2, 2}; // Player's avatar origin
 
             while (true) {
@@ -33,6 +47,15 @@ int main() {
                 erase();
 
                 renderMap(map, originY, originX);
+
+                {
+                    std::lock_guard<std::mutex> lock(patrollerMtx);
+                    for (const auto &p : patrollers) {
+                        attron(COLOR_PAIR(3));
+                        mvaddch(originY + p.y, originX + p.x, 'P');
+                        attroff(COLOR_PAIR(3));
+                    }
+                }
 
                 // Render avatar
                 attron(COLOR_PAIR(2));
@@ -47,10 +70,12 @@ int main() {
 
                 // New avatar position after step
                 auto [newY, newX] = calculateNewPos(key, player.y, player.x);
-                if (isValidMove(map, newY, newX)) {
-                    player = {newY, newX};
-                }
+                if (isValidMove(map, newY, newX)) player = {newY, newX};
             }
+
+            patrollerRunning = false;
+            patrollerThread.join();
+
         } else if (selection == 1) {
             if (runConfirmExit()) break;
         }
