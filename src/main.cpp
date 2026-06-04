@@ -36,7 +36,10 @@ int main() {
                                         std::ref(map),
                                         std::ref(patrollerRunning));
 
-            Player player = {2, 2}; // Player's avatar origin
+            // getch() times out every 100ms
+            // Otherwise getch() blocks the main thread until a key is pressed
+            // And so patroller movements wouldn't render until a key is pressed
+            timeout(100);
 
             while (true) {
                 getmaxyx(stdscr, maxY, maxX);
@@ -66,13 +69,15 @@ int main() {
 
                 int key = getch();
                 if (key == 27) break; // ESC returns to main menu
-                if (key == KEY_RESIZE) continue;
+                if (key == KEY_RESIZE || key == ERR) continue;
 
                 // New avatar position after step
                 auto [newY, newX] = calculateNewPos(key, player.y, player.x);
                 if (isValidMove(map, newY, newX)) player = {newY, newX};
             }
+}
 
+            timeout(-1); // Restore blocking after hitting ESC
             patrollerRunning = false;
             patrollerThread.join();
 
