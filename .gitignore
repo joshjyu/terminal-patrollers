@@ -5,3 +5,4 @@
 /src/.cache/
 /src/compile_commands.json
 /.clangd
+terminal_patrollers
