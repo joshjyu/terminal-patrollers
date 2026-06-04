@@ -1,6 +1,39 @@
 #include "game.h"
 
 #include <ncurses.h>
+#include <string>
+
+// Temporary test map
+static const std::vector<std::string> kTestMap = {
+    "####################", "#..................#", "#...##.............#",
+    "#..................#", "#.........###......#", "#..................#",
+    "#......##..........#", "#..................#", "####################",
+};
+
+// Returns kTestMap
+const std::vector<std::string> &getTestMap() { return kTestMap; }
+
+/// @brief Renders the map grid centered on the terminal.
+///
+/// @param mapGrid The 2D map to render
+void renderMap(const std::vector<std::string> &mapGrid)
+{
+    int maxY, maxX;
+    getmaxyx(stdscr, maxY, maxX);
+
+    // Centers the map in the terminal
+    int originY = (maxY - (int)mapGrid.size()) / 2;
+    int originX = (maxX - (int)mapGrid[0].size()) / 2;
+
+    // Renders the map
+    for (int row = 0; row < (int)mapGrid.size(); row++)
+    {
+        for (int col = 0; col < (int)mapGrid[0].size(); col++)
+        {
+            mvaddch(originY + row, originX + col, mapGrid[row][col]);
+        }
+    }
+}
 
 /// @brief Checks if the target coordinates are a valid movement space.
 ///
@@ -8,8 +41,9 @@
 /// @param targetY Target row index
 /// @param targetX Target column index
 /// @return True if the move is valid. False otherwise.
-bool isValidMove(const std::vector<std::vector<char>> &mapGrid, int targetY,
-                 int targetX) {
+bool isValidMove(const std::vector<std::string> &mapGrid, int targetY,
+                 int targetX)
+{
     int maxY = mapGrid.size();
     int maxX = maxY > 0 ? (int)mapGrid[0].size() : 0;
 
@@ -26,7 +60,8 @@ bool isValidMove(const std::vector<std::vector<char>> &mapGrid, int targetY,
 /// @param currentY Current row coordinate.
 /// @param currentX Current column coordinate.
 /// @return A pair of updated (x, y) coordinates.
-std::pair<int, int> calculateNewPos(int key, int currentY, int currentX) {
+std::pair<int, int> calculateNewPos(int key, int currentY, int currentX)
+{
     int newY = currentY;
     int newX = currentX;
 
