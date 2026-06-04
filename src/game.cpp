@@ -5,31 +5,52 @@
 
 // Temporary test map
 static const std::vector<std::string> kTestMap = {
-    "####################", "#..................#", "#...##.............#",
-    "#..................#", "#.........###......#", "#..................#",
-    "#......##..........#", "#..................#", "####################",
-};
+    "################################################################",
+    "#..............................................................#",
+    "#...##########..............##########################.........#",
+    "#...##########..............##########################.........#",
+    "#...##########..............##########################...####..#",
+    "#...##########..............##########################...####..#",
+    "#........................................................####..#",
+    "#........................................................####..#",
+    "#.......###########............................................#",
+    "#.......###########.........####.........###################...#",
+    "#.......###########.........####.........###################...#",
+    "#.......###########.........####.........###################...#",
+    "#...........................####.........###################...#",
+    "#..............................................................#",
+    "#..............................................................#",
+    "#...###################........................................#",
+    "#...###################........#####################.....#######",
+    "#...###################........#####################.....#######",
+    "#...###################........#####################.....#######",
+    "#...###################........#####################.....#######",
+    "#..............................#####################...........#",
+    "#..............................................................#",
+    "#..............................................................#",
+    "#........############...................................####...#",
+    "#........############..........#################........####...#",
+    "#........############..........#################........####...#",
+    "#........############..........#################........####...#",
+    "#..............................#################...............#",
+    "#..............................#################...............#",
+    "#..............................................................#",
+    "#..............................................................#",
+    "################################################################"};
 
 // Returns kTestMap
 const std::vector<std::string> &getTestMap() { return kTestMap; }
 
 /// @brief Renders the map grid centered on the terminal.
 ///
-/// @param mapGrid The 2D map to render
-void renderMap(const std::vector<std::string> &mapGrid)
-{
-    int maxY, maxX;
-    getmaxyx(stdscr, maxY, maxX);
-
-    // Centers the map in the terminal
-    int originY = (maxY - (int)mapGrid.size()) / 2;
-    int originX = (maxX - (int)mapGrid[0].size()) / 2;
-
+/// @param mapGrid The 2D map to render.
+/// @param originY The Y coord int at which the map begins rendering.
+/// @param originX The X coord int at which the map begins rendering.
+void renderMap(const std::vector<std::string> &mapGrid, int originY,
+               int originX) {
     // Renders the map
-    for (int row = 0; row < (int)mapGrid.size(); row++)
-    {
-        for (int col = 0; col < (int)mapGrid[0].size(); col++)
-        {
+    for (int row = 0; row < (int)mapGrid.size(); row++) {
+        for (int col = 0; col < (int)mapGrid[0].size(); col++) {
             mvaddch(originY + row, originX + col, mapGrid[row][col]);
         }
     }
@@ -42,8 +63,7 @@ void renderMap(const std::vector<std::string> &mapGrid)
 /// @param targetX Target column index
 /// @return True if the move is valid. False otherwise.
 bool isValidMove(const std::vector<std::string> &mapGrid, int targetY,
-                 int targetX)
-{
+                 int targetX) {
     int maxY = mapGrid.size();
     int maxX = maxY > 0 ? (int)mapGrid[0].size() : 0;
 
@@ -59,9 +79,8 @@ bool isValidMove(const std::vector<std::string> &mapGrid, int targetY,
 /// @param key The key code from getch().
 /// @param currentY Current row coordinate.
 /// @param currentX Current column coordinate.
-/// @return A pair of updated (x, y) coordinates.
-std::pair<int, int> calculateNewPos(int key, int currentY, int currentX)
-{
+/// @return A pair of updated (y, x) coordinates.
+std::pair<int, int> calculateNewPos(int key, int currentY, int currentX) {
     int newY = currentY;
     int newX = currentX;
 
