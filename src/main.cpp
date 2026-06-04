@@ -30,17 +30,21 @@ int main() {
             std::mutex patrollerMtx;
             std::atomic<bool> patrollerRunning{true};
 
+            Player player = {2, 2}; // Player's avatar origin
+
             std::thread patrollerThread(runPatrollers,
                                         std::ref(patrollers),
                                         std::ref(patrollerMtx),
                                         std::ref(map),
-                                        std::ref(patrollerRunning));
+                                        std::ref(patrollerRunning),
+                                        std::ref(player));
 
             // getch() times out every 100ms
             // Otherwise getch() blocks the main thread until a key is pressed
             // And so patroller movements wouldn't render until a key is pressed
             timeout(100);
 
+            // Main game loop
             while (true) {
                 getmaxyx(stdscr, maxY, maxX);
                 // Camera tracking, centers on player
@@ -73,9 +77,16 @@ int main() {
 
                 // New avatar position after step
                 auto [newY, newX] = calculateNewPos(key, player.y, player.x);
-                if (isValidMove(map, newY, newX)) player = {newY, newX};
+                if (isValidMove(map, newY, newX)) {
+                    // Lock thread to check collision with patroller
+                    std::lock_guard<std::mutex> lock(patrollerMtx);
+                    bool blocked = false;
+                    for (const auto &p : patrollers) {
+                        if (p.y == newY && p.x == newX) blocked = true;
+                    }
+                    if (!blocked) player = {newY, newX};
+                }
             }
-}
 
             timeout(-1); // Restore blocking after hitting ESC
             patrollerRunning = false;

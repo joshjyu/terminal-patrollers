@@ -111,7 +111,8 @@ std::pair<int, int> calculateNewPos(int key, int currentY, int currentX) {
 void runPatrollers(std::vector<Patroller> &patrollers,
                    std::mutex &mtx,
                    const std::vector<std::string> &mapGrid,
-                   std::atomic<bool> &running) {
+                   std::atomic<bool> &running,
+                   const Player &player) {
 
     // Generate random int [0,3]
     std::mt19937 rng(std::random_device{}());
@@ -128,9 +129,21 @@ void runPatrollers(std::vector<Patroller> &patrollers,
         std::lock_guard<std::mutex> lock(mtx);
         for (auto &p : patrollers) {
             int d = dir(rng);
-            if (isValidMove(mapGrid, p.y + dy[d], p.x + dx[d])) {
-                p.y += dy[d];
-                p.x += dx[d];
+            int newY = p.y + dy[d];
+            int newX = p.x + dx[d];
+
+            if (!isValidMove(mapGrid, newY, newX)) continue;
+            if (newY == player.y && newX == player.x) continue;
+
+            bool occupied = false;
+            for (const auto &other : patrollers) {
+                if (&other != &p && other.y == newY && other.x == newX)
+                    occupied = true;
+            }
+
+            if (!occupied) {
+                p.y = newY;
+                p.x = newX;
             }
         }
     }

@@ -30,4 +30,5 @@ struct Patroller {
 void runPatrollers(std::vector<Patroller> &patrollers,
                    std::mutex &mtx,
                    const std::vector<std::string> &mapGrid,
-                   std::atomic<bool> &running);
+                   std::atomic<bool> &running,
+                   const Player &player);
