@@ -1,4 +1,5 @@
 #include "game.h"
+#include "map_service.h"
 #include "ui.h"
 #include <functional>
 #include <mutex>
@@ -22,7 +23,22 @@ int main() {
         // 0 = PLAY
         // 1 = QUIT
         if (selection == 0) {
-            const auto &map = getTestMap();
+            const auto &locations = getLocations();
+            std::vector<std::string> names;
+            for (const auto &loc : locations)
+                names.push_back(loc.name);
+
+            int locSelection = runLocationMenu(names);
+            showLoadingScreen("Loading map...");
+
+            std::vector<std::string> map;
+            try {
+                map = fetchMap(locations[locSelection]);
+            } catch (const std::exception &e) {
+                showErrorScreen(std::string("Failed to load map: ") + e.what());
+                continue;
+            }
+
             int maxY, maxX;
 
             // Generate patrollers

@@ -23,6 +23,32 @@ std::pair<int, int> getCenteredCoords(int textLen, int offsetY) {
     return {y, x};
 }
 
+/// @brief Displays an error message and waits for a keypress.
+///
+/// @param message The error message to display.
+void showErrorScreen(const std::string &message) {
+    clear();
+    auto [y, x] = getCenteredCoords(message.size(), -1);
+    mvaddstr(y, x, message.c_str());
+
+    std::string prompt = "Press any key to continue.";
+    auto [promptY, promptX] = getCenteredCoords(prompt.size(), -1);
+    mvaddstr(promptY, promptX, prompt.c_str());
+
+    refresh();
+    getch();
+}
+
+/// @brief Displays a loading message and refreshes the screen.
+///
+/// @param message The message to display.
+void showLoadingScreen(const std::string &message) {
+    clear();
+    auto [y, x] = getCenteredCoords(message.size());
+    mvaddstr(y, x, message.c_str());
+    refresh();
+}
+
 /// @brief Prompts the user to confirm exiting.
 ///
 /// @return True if the user confirms exit. False otherwise.
@@ -77,6 +103,52 @@ bool runConfirmExit() {
     }
 }
 
+/// @brief Draws and handles the location selection menu.
+///
+/// @param names Display names for each selectable location.
+/// @return Index of the selected location.
+int runLocationMenu(const std::vector<std::string> &names) {
+    int currentSelection = 0;
+
+    while (true) {
+        clear();
+
+        std::string title = "SELECT A LOCATION";
+        auto [titleY, titleX] = getCenteredCoords(title.size(), -4);
+        mvaddstr(titleY, titleX, title.c_str());
+
+        // Add '>' marker next to selection; highlight selection
+        for (int i = 0; i < (int)names.size(); i++) {
+            std::string label =
+                (i == currentSelection) ? "> " + names[i] : "  " + names[i];
+            auto [y, x] = getCenteredCoords(label.size(), -1 + i);
+
+            // Highlight the selection
+            if (i == currentSelection) {
+                attron(A_REVERSE); // Swaps FG and BG
+                mvaddstr(y, x, label.c_str());
+                attroff(A_REVERSE);
+            } else {
+                mvaddstr(y, x, label.c_str());
+            }
+        }
+
+        refresh();
+        int key = getch();
+
+        // Handles WASD and Arrow Keys and Enter keyboard inputs
+        if (key == KEY_UP || key == 'w' || key == 'W')
+            currentSelection = std::max(0, currentSelection - 1);
+        else if (key == KEY_DOWN || key == 's' || key == 'S')
+            currentSelection =
+                std::min((int)names.size() - 1, currentSelection + 1);
+        else if (key == KEY_ENTER || key == 10 || key == 13)
+            return currentSelection;
+        else if (key == KEY_RESIZE)
+            clear();
+    }
+}
+
 /// @brief Draws and handles the main menu.
 ///
 /// @return Index of the selected option (0 for Play, 1 for Quit).
@@ -92,7 +164,6 @@ int runMainMenu() {
         std::string costNote =
             "NOTE: Requires an active microservice network connection.";
 
-        // Print text
         auto [titleY, titleX] = getCenteredCoords(title.size(), -4);
         auto [descY, descX] = getCenteredCoords(desc.size(), -2);
         auto [noteY, noteX] = getCenteredCoords(costNote.size(), 0);
@@ -100,7 +171,6 @@ int runMainMenu() {
         mvaddstr(descY, descX, desc.c_str());
         mvaddstr(noteY, noteX, costNote.c_str());
 
-        // Add dynamic ">" marker next to selections
         for (int i = 0; i < (int)options.size(); i++) {
             std::string label =
                 (i == currentSelection) ? "> " + options[i] : "  " + options[i];
@@ -119,7 +189,6 @@ int runMainMenu() {
         refresh();
         int key = getch();
 
-        // Handles WASD and Arrow Keys and Enter keyboard inputs
         if (key == KEY_UP || key == 'w' || key == 'W')
             currentSelection = std::max(0, currentSelection - 1);
         else if (key == KEY_DOWN || key == 's' || key == 'S')
