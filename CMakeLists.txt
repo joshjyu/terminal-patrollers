@@ -17,5 +17,6 @@ FetchContent_MakeAvailable(cpr)
 add_executable(terminal_patrollers
     src/main.cpp
     src/ui.cpp
-    src/game.cpp)
+    src/game.cpp
+    src/map_service.cpp)
 target_link_libraries(terminal_patrollers ncurses Threads::Threads cpr::cpr nlohmann_json::nlohmann_json)
