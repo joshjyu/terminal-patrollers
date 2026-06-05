@@ -76,7 +76,8 @@ bool isValidMove(const std::vector<std::string> &mapGrid,
         targetY >= 0 && targetY < maxY && targetX >= 0 && targetX < maxX;
 
     // Valid if inBounds and target movement space is not an obstacle
-    return inBounds && mapGrid[targetY][targetX] != '#';
+    return inBounds && mapGrid[targetY][targetX] != '#' &&
+           mapGrid[targetY][targetX] != 'X';
 }
 
 /// @brief Calculates new coordinates based on the movement key pressed.

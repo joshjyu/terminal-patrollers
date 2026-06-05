@@ -23,6 +23,7 @@ int main() {
         // 0 = PLAY
         // 1 = QUIT
         if (selection == 0) {
+            // Location selection
             const auto &locations = getLocations();
             std::vector<std::string> names;
             for (const auto &loc : locations)
@@ -39,9 +40,8 @@ int main() {
                 continue;
             }
 
-            int maxY, maxX;
-
             // Generate patrollers
+            int maxY, maxX;
             std::vector<Patroller> patrollers = {{5, 5}, {15, 15}, {25, 3}};
             std::mutex patrollerMtx;
             std::atomic<bool> patrollerRunning{true};
@@ -63,6 +63,12 @@ int main() {
             // Main game loop
             while (true) {
                 getmaxyx(stdscr, maxY, maxX);
+
+                // Camera tracking with player centered
+                // int originY = (maxY / 2) - player.y;
+                // int originX = (maxX / 2) - player.x;
+
+                // Static camera with map centered
                 int originY = (maxY - (int)map.size()) / 2;
                 int originX = (maxX - (int)map[0].size()) / 2;
 

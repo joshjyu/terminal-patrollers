@@ -28,11 +28,18 @@ std::pair<int, int> getCenteredCoords(int textLen, int offsetY) {
 /// @param message The error message to display.
 void showErrorScreen(const std::string &message) {
     clear();
-    auto [y, x] = getCenteredCoords(message.size(), -1);
-    mvaddstr(y, x, message.c_str());
+    int maxY, maxX;
+    getmaxyx(stdscr, maxY, maxX);
+
+    // Truncate error message
+    std::string display =
+        message.size() > (size_t)maxX ? message.substr(0, maxX) : message;
+
+    auto [y, x] = getCenteredCoords(display.size(), -1);
+    mvaddstr(y, x, display.c_str());
 
     std::string prompt = "Press any key to continue.";
-    auto [promptY, promptX] = getCenteredCoords(prompt.size(), -1);
+    auto [promptY, promptX] = getCenteredCoords(prompt.size(), 1);
     mvaddstr(promptY, promptX, prompt.c_str());
 
     refresh();
@@ -160,9 +167,9 @@ int runMainMenu() {
         clear();
 
         std::string title = "TERMINAL PATROLLERS";
-        std::string desc = "A stealth game mapped to real-world city streets!";
+        std::string desc = "A stealth game mapped to real locations!";
         std::string costNote =
-            "NOTE: Requires an active microservice network connection.";
+            "NOTE: Requires active microservice network connections.";
 
         auto [titleY, titleX] = getCenteredCoords(title.size(), -4);
         auto [descY, descX] = getCenteredCoords(desc.size(), -2);
