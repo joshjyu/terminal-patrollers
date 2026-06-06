@@ -40,9 +40,8 @@ static char terrainToChar(const std::string &terrain) {
 /// @throws std::runtime_error if any HTTP call fails.
 std::vector<std::string> fetchMap(const Location &location) {
     // 1. MICROGEO - Fetch map data
-    auto searchRes =
-        cpr::Get(cpr::Url{kMicrogeoUrl + "/v1/search"},
-                 cpr::Parameters{{"q", location.query}, {"limit", "1"}});
+    auto searchRes = cpr::Get(cpr::Url{kMicrogeoUrl + "/v1/search"},
+        cpr::Parameters{{"q", location.query}, {"limit", "1"}});
     if (searchRes.status_code != 200)
         throw std::runtime_error("microgeo search failed..." + searchRes.text);
 
@@ -65,11 +64,11 @@ std::vector<std::string> fetchMap(const Location &location) {
     double maxLon = lon + lonOffset;
 
     auto featRes = cpr::Get(cpr::Url{kMicrogeoUrl + "/v1/features/point"},
-                            cpr::Parameters{
-                                {"lat", std::to_string(lat)},
-                                {"lon", std::to_string(lon)},
-                                {"radius", std::to_string(kRadius)} // in meters
-                            });
+        cpr::Parameters{
+            {"lat", std::to_string(lat)},
+            {"lon", std::to_string(lon)},
+            {"radius", std::to_string(kRadius)} // in meters
+        });
     if (featRes.status_code != 200)
         throw std::runtime_error("microgeo features failed..." + featRes.text);
 
@@ -83,71 +82,69 @@ std::vector<std::string> fetchMap(const Location &location) {
     payload["default_terrain"] = kDefaultTerrain;
 
     // Custom hierarchy for detailed features
-    payload["mapping"] = nlohmann::json::array(
-        {// Unpassable hazards
-         {{"terrain", "water"},
-          {"priority", 90},
-          {"match",
-           {{"natural", {"water"}},
-            {"waterway", {"canal", "river"}},
-            {"amenity", {"fountain"}}}}},
-         {{"terrain", "wall"},
-          {"priority", 85},
-          {"match",
-           {{"barrier", {"wall", "fence", "hedge", "retaining_wall"}}}}},
+    payload["mapping"] = nlohmann::json::array({// Unpassable hazards
+        {{"terrain", "water"},
+            {"priority", 90},
+            {"match",
+                {{"natural", {"water"}},
+                    {"waterway", {"canal", "river"}},
+                    {"amenity", {"fountain"}}}}},
+        {{"terrain", "wall"},
+            {"priority", 85},
+            {"match",
+                {{"barrier", {"wall", "fence", "hedge", "retaining_wall"}}}}},
 
-         // Carve out walkable paths explicitly (Priority 80 overrides default
-         // buildings)
-         {{"terrain", "road"},
-          {"priority", 80},
-          {"match",
-           {{"highway",
-             {"primary",
-              "secondary",
-              "tertiary",
-              "residential",
-              "footway",
-              "path",
-              "pedestrian",
-              "service",
-              "living_street",
-              "cycleway",
-              "steps",
-              "track"}}}}},
+        // Carve out walkable paths explicitly (Priority 80 overrides default
+        // buildings)
+        {{"terrain", "road"},
+            {"priority", 80},
+            {"match",
+                {{"highway",
+                    {"primary",
+                        "secondary",
+                        "tertiary",
+                        "residential",
+                        "footway",
+                        "path",
+                        "pedestrian",
+                        "service",
+                        "living_street",
+                        "cycleway",
+                        "steps",
+                        "track"}}}}},
 
-         // Carve out open hiding/navigable areas
-         {{"terrain", "grass"},
-          {"priority", 75},
-          {"match",
-           {{"leisure", {"park", "garden", "pitch", "playground"}},
-            {"landuse", {"grass", "meadow", "recreation_ground"}},
-            {"amenity", {"parking"}}}}},
+        // Carve out open hiding/navigable areas
+        {{"terrain", "grass"},
+            {"priority", 75},
+            {"match",
+                {{"leisure", {"park", "garden", "pitch", "playground"}},
+                    {"landuse", {"grass", "meadow", "recreation_ground"}},
+                    {"amenity", {"parking"}}}}},
 
-         // Mapped buildings (Reinforces the default solid mass)
-         {{"terrain", "building"},
-          {"priority", 70},
-          {"match",
-           {{"building",
-             {"yes",
-              "commercial",
-              "retail",
-              "apartments",
-              "house",
-              "university",
-              "office",
-              "hotel",
-              "civic",
-              "industrial",
-              "residential",
-              "public"}}}}}});
+        // Mapped buildings (Reinforces the default solid mass)
+        {{"terrain", "building"},
+            {"priority", 70},
+            {"match",
+                {{"building",
+                    {"yes",
+                        "commercial",
+                        "retail",
+                        "apartments",
+                        "house",
+                        "university",
+                        "office",
+                        "hotel",
+                        "civic",
+                        "industrial",
+                        "residential",
+                        "public"}}}}}});
 
-    auto convertRes = cpr::Post(
-        cpr::Url{kMicromapUrl + "/v1/convert"},
+    auto convertRes = cpr::Post(cpr::Url{kMicromapUrl + "/v1/convert"},
         cpr::Body{payload.dump()}, // Serializes JSON to a string for POST body
         cpr::Header{{"Content-Type", "application/json"}});
     if (convertRes.status_code != 200)
-        throw std::runtime_error("micromap convert failed..." +
-                                 convertRes.text);
+        throw std::runtime_error(
+            "micromap convert failed..." + convertRes.text);
 
     auto mapJson = nlohmann::json::parse(convertRes.text);
     std::vector<std::string> result;

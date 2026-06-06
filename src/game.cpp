@@ -1,8 +1,10 @@
 #include "game.h"
 
+#include <algorithm>
 #include <chrono>
 #include <ncurses.h>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -11,9 +13,8 @@
 /// @param mapGrid The 2D map to render.
 /// @param originY The Y coord int at which the map begins rendering.
 /// @param originX The X coord int at which the map begins rendering.
-void renderMap(const std::vector<std::string> &mapGrid,
-               int originY,
-               int originX) {
+void renderMap(
+    const std::vector<std::string> &mapGrid, int originY, int originX) {
     // Renders the map
     for (int row = 0; row < (int)mapGrid.size(); row++) {
         for (int col = 0; col < (int)mapGrid[0].size(); col++) {
@@ -26,8 +27,8 @@ void renderMap(const std::vector<std::string> &mapGrid,
 ///
 /// @param mapGrid The 2D map to scan.
 /// @return A vector of (row, col) pairs for every road tile.
-std::vector<std::pair<int, int>>
-getRoadTiles(const std::vector<std::string> &mapGrid) {
+std::vector<std::pair<int, int>> getRoadTiles(
+    const std::vector<std::string> &mapGrid) {
     std::vector<std::pair<int, int>> roads;
     for (int row = 0; row < (int)mapGrid.size(); row++) {
         for (int col = 0; col < (int)mapGrid[0].size(); col++) {
@@ -37,15 +38,38 @@ getRoadTiles(const std::vector<std::string> &mapGrid) {
     return roads;
 }
 
+/// @brief Generates player and patroller starting positions on road tiles.
+///
+/// @param mapGrid The 2D map to scan for road tiles.
+/// @param density Patrollers per road tile (e.g. 0.02 = 2 per 100 tiles).
+/// @return Entities struct containing the player and patroller positions.
+/// @throws std::runtime_error if there are not enough road tiles.
+Entities generateEntities(
+    const std::vector<std::string> &mapGrid, double density) {
+    auto roads = getRoadTiles(mapGrid);
+    int numPatrollers = std::max(1, (int)(roads.size() * density));
+    if ((int)roads.size() < numPatrollers + 1)
+        throw std::runtime_error("Not enough road tiles to place entities.");
+
+    std::mt19937 rng(std::random_device{}());
+    std::shuffle(roads.begin(), roads.end(), rng);
+
+    Entities entities;
+    entities.player = {roads[0].first, roads[0].second};
+    for (int i = 1; i <= numPatrollers; i++)
+        entities.patrollers.push_back({roads[i].first, roads[i].second});
+
+    return entities;
+}
+
 /// @brief Checks if the target coordinates are a valid movement space.
 ///
 /// @param mapGrid The 2d map matrix
 /// @param targetY Target row index
 /// @param targetX Target column index
 /// @return True if the move is valid. False otherwise.
-bool isValidMove(const std::vector<std::string> &mapGrid,
-                 int targetY,
-                 int targetX) {
+bool isValidMove(
+    const std::vector<std::string> &mapGrid, int targetY, int targetX) {
     int maxY = mapGrid.size();
     int maxX = maxY > 0 ? (int)mapGrid[0].size() : 0;
 
@@ -87,10 +111,10 @@ std::pair<int, int> calculateNewPos(int key, int currentY, int currentX) {
 /// @param mapGrid The map used for collision checking.
 /// @param running The loop exits when the atomic flag is set to false.
 void runPatrollers(std::vector<Patroller> &patrollers,
-                   std::mutex &mtx,
-                   const std::vector<std::string> &mapGrid,
-                   std::atomic<bool> &running,
-                   const Player &player) {
+    std::mutex &mtx,
+    const std::vector<std::string> &mapGrid,
+    std::atomic<bool> &running,
+    const Player &player) {
 
     // Generate random int [0,3]
     std::mt19937 rng(std::random_device{}());

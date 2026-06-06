@@ -44,20 +44,16 @@ int main() {
             }
 
             // Generate patrollers and player on road tiles
-            auto roads = getRoadTiles(map);
-            if (roads.size() < 4) {
-                showErrorScreen("Not enough road tiles to place entities.");
+            Entities entities;
+            try {
+                entities = generateEntities(map, 0.03);
+            } catch (const std::exception &e) {
+                showErrorScreen(e.what());
                 continue;
             }
 
-            std::mt19937 rng(std::random_device{}());
-            std::shuffle(roads.begin(), roads.end(), rng);
-
-            Player player = {roads[0].first, roads[0].second};
-            std::vector<Patroller> patrollers = {
-                {roads[1].first, roads[1].second},
-                {roads[2].first, roads[2].second},
-                {roads[3].first, roads[3].second}};
+            Player player = entities.player;
+            std::vector<Patroller> patrollers = entities.patrollers;
 
             int maxY, maxX;
 
@@ -65,11 +61,11 @@ int main() {
             std::atomic<bool> patrollerRunning{true};
 
             std::thread patrollerThread(runPatrollers,
-                                        std::ref(patrollers),
-                                        std::ref(patrollerMtx),
-                                        std::ref(map),
-                                        std::ref(patrollerRunning),
-                                        std::ref(player));
+                std::ref(patrollers),
+                std::ref(patrollerMtx),
+                std::ref(map),
+                std::ref(patrollerRunning),
+                std::ref(player));
 
             // getch() times out every 100ms
             // Otherwise getch() blocks the main thread until a key is pressed
