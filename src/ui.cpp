@@ -223,7 +223,7 @@ void initializeColors() {
     // Pair 1: Map elements and standard text
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
     // Pair 2: Player avatar @
-    init_pair(2, COLOR_YELLOW, COLOR_WHITE);
+    init_pair(2, COLOR_GREEN, COLOR_WHITE);
     // Pair 3: Patroller avatar P
     init_pair(3, COLOR_RED, COLOR_WHITE);
 
