@@ -45,3 +45,8 @@ void runPatrollers(std::vector<Patroller> &patrollers,
     const std::vector<std::string> &mapGrid,
     std::atomic<bool> &running,
     const Player &player);
+
+bool checkDetection(
+    const std::vector<Patroller> &patrollers, const Player &player);
+
+enum class GameResult { Playing, Caught, Escaped };

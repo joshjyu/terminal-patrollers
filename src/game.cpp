@@ -214,3 +214,16 @@ void runPatrollers(std::vector<Patroller> &patrollers,
         }
     }
 }
+
+/// @brief Checks if any patroller is adjacent to the player.
+///
+/// @param patrollers The list of active patrollers.
+/// @param player The current player position.
+/// @return True if any patroller is within Manhattan distance of 1.
+bool checkDetection(
+    const std::vector<Patroller> &patrollers, const Player &player) {
+    for (const auto &p : patrollers)
+        if (abs(p.y - player.y) + abs(p.x - player.x) == 1) return true;
+
+    return false;
+}
