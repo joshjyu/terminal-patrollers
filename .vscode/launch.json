@@ -5,7 +5,7 @@
             "name": "g++ - Debug CMake output",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/terminal_patrollers",
+            "program": "${workspaceFolder}/build/terminal_patrollers",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
