@@ -386,6 +386,28 @@ PauseResult runPauseMenu(Settings &settings) {
     }
 }
 
+/// @brief Renders the game HUD on the bottom of the game screen.
+///
+/// @param patrollerDensity The current patroller density setting.
+/// @param elapsedSeconds Seconds elapsed since the game session started.
+void renderHUD(double patrollerDensity, int elapsedSeconds) {
+    int maxY, maxX;
+    getmaxyx(stdscr, maxY, maxX);
+
+    int minutes = elapsedSeconds / 60;
+    int seconds = elapsedSeconds % 60;
+
+    std::string timer = std::to_string(minutes) + ":" +
+                        (seconds < 10 ? "0" : "") + std::to_string(seconds);
+
+    std::string hud = "[WASD/Arrows] Move, [ESC] Pause, Patroller Density: " +
+                      std::to_string(patrollerDensity).substr(0, 4) +
+                      "  |  Time: " + timer;
+
+    std::string display = hud.size() > (size_t)maxX ? hud.substr(0, maxX) : hud;
+    mvaddstr(maxY - 1, (maxX - (int)display.size()) / 2, display.c_str());
+}
+
 /// @brief Handles a generic game over screen.
 ///
 /// @param title The text to be displayed as the title of the game over screen.

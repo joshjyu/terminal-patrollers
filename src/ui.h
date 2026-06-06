@@ -23,3 +23,4 @@ enum class EndResult { Restart, ExitToMenu, ExitGame };
 PauseResult runPauseMenu(Settings &settings);
 EndResult showCaughtScreen();
 EndResult showEscapedScreen();
+void renderHUD(double patrollerDensity, int elapsedSeconds);

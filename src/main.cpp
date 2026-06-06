@@ -1,6 +1,7 @@
 #include "game.h"
 #include "map_service.h"
 #include "ui.h"
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <ncurses.h>
@@ -76,6 +77,9 @@ int main() {
                     std::ref(patrollerRunning),
                     std::ref(player));
 
+                // Time the game
+                auto startTime = std::chrono::steady_clock::now();
+
                 // getch() times out every 100ms
                 // Otherwise getch() blocks the main thread until a key is
                 // pressed And so patroller movements wouldn't render until a
@@ -137,6 +141,12 @@ int main() {
                     mvaddch(
                         originY + exitPos.first, originX + exitPos.second, 'E');
                     attroff(COLOR_PAIR(5) | A_BOLD | A_REVERSE);
+
+                    int elapsed =
+                        (int)std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::steady_clock::now() - startTime)
+                            .count();
+                    renderHUD(settings.patrollerDensity, elapsed);
 
                     refresh();
 
