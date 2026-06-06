@@ -1,4 +1,5 @@
 #include "game.h"
+#include "leaderboard_service.h"
 #include "map_service.h"
 #include "profile_service.h"
 #include "ui.h"
@@ -228,6 +229,20 @@ int main() {
                 EndResult endResult = EndResult::ExitToMenu;
                 if (!exitGame) {
                     if (result == GameResult::Escaped) {
+                        try {
+                            submitScore(locationName,
+                                profileData.username,
+                                finalElapsed);
+                        } catch (...) {
+                        }
+
+                        std::vector<LeaderEntry> entries;
+                        try {
+                            entries = getTopScores(locationName);
+                        } catch (...) {
+                        }
+                        showLeaderboard(locationName, entries);
+
                         endResult = showEscapedScreen();
                         auto it = profileData.bestTimes.find(locationName);
                         if (it == profileData.bestTimes.end() ||
