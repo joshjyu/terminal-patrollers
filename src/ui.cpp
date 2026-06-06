@@ -46,6 +46,17 @@ void showErrorScreen(const std::string &message) {
     getch();
 }
 
+/// @brief Renders a controls hint at the bottom of the screen.
+///
+/// @param text The instruction text to display.
+void showControls(const std::string &text) {
+    int maxY, maxX;
+    getmaxyx(stdscr, maxY, maxX);
+    std::string display =
+        text.size() > (size_t)maxX ? text.substr(0, maxX) : text;
+    mvaddstr(maxY - 1, (maxX - (int)display.size()) / 2, display.c_str());
+}
+
 /// @brief Displays a loading message and refreshes the screen.
 ///
 /// @param message The message to display.
@@ -93,6 +104,7 @@ bool runConfirmExit() {
             }
         }
 
+        showControls("[W][S] or [UP][DOWN] to select  |  [ENTER] to confirm");
         refresh();
         int key = getch();
 
@@ -140,6 +152,7 @@ int runLocationMenu(const std::vector<std::string> &names) {
             }
         }
 
+        showControls("[W][S] or [UP][DOWN] to select  |  [ENTER] to confirm");
         refresh();
         int key = getch();
 
@@ -193,6 +206,7 @@ int runMainMenu() {
             }
         }
 
+        showControls("[W][S] or [UP][DOWN] to select  |  [ENTER] to confirm");
         refresh();
         int key = getch();
 
@@ -208,10 +222,43 @@ int runMainMenu() {
     }
 }
 
+/// @brief Displays the caught/game over screen.
+void showCaughtScreen() {
+    clear();
+    std::string title = "YOU WERE CAUGHT";
+    std::string prompt = "Press any key to return to the menu.";
+    auto [titleY, titleX] = getCenteredCoords(title.size(), -1);
+    auto [promptY, promptX] = getCenteredCoords(title.size(), 1);
+
+    attron(A_BOLD);
+    mvaddstr(titleY, titleX, title.c_str());
+    attroff(A_BOLD);
+    mvaddstr(promptY, promptX, prompt.c_str());
+    refresh();
+    napms(1000); // Sleep for 1 second to prevent accidental exit
+    getch();
+}
+
+/// @brief Displays the escaped/win screen.
+void showEscapedScreen() {
+    clear();
+    std::string title = "YOU ESCAPED!";
+    std::string prompt = "Press any key to return to the menu.";
+    auto [titleY, titleX] = getCenteredCoords(title.size(), -1);
+    auto [promptY, promptX] = getCenteredCoords(title.size(), 1);
+
+    attron(A_BOLD);
+    mvaddstr(titleY, titleX, title.c_str());
+    attroff(A_BOLD);
+    mvaddstr(promptY, promptX, prompt.c_str());
+    refresh();
+    napms(1000); // Sleep for 1 second to prevent accidental exit
+    getch();
+}
+
 /// @brief Initializes color pairs and sets the window background.
 void initializeColors() {
     start_color();
-    use_default_colors();
 
     // If user's terminal can change colors,
     // define white and black
@@ -226,6 +273,10 @@ void initializeColors() {
     init_pair(2, COLOR_GREEN, COLOR_WHITE);
     // Pair 3: Patroller avatar P
     init_pair(3, COLOR_RED, COLOR_WHITE);
+    // Pair 4: Patroller detection radius
+    init_pair(4, COLOR_RED, COLOR_WHITE);
+    // Pair 5: Exit tile E
+    init_pair(5, COLOR_CYAN, COLOR_WHITE);
 
     bkgd(COLOR_PAIR(1));
 }
