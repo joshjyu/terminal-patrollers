@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 static const std::string kLeaderUrl = "http://localhost:8002";
+static const int kMaxTime = 9999;
 
 /// @brief Converts a location name to a stable client_app_id slug.
 ///
@@ -31,7 +32,7 @@ void submitScore(
     nlohmann::json payload;
     payload["client_app_id"] = locationToAppId(locationName);
     payload["player"] = player;
-    payload["score"] = -seconds;
+    payload["score"] = kMaxTime - seconds;
 
     auto res = cpr::Post(cpr::Url{kLeaderUrl + "/leaderboard/scores"},
         cpr::Body{payload.dump()},
@@ -58,7 +59,8 @@ std::vector<LeaderEntry> getTopScores(
 
     std::vector<LeaderEntry> entries;
     for (const auto &item : nlohmann::json::parse(res.text))
-        entries.push_back({item["player"], -item["score"].get<int>()});
+        entries.push_back(
+            {item["player"], kMaxTime - item["score"].get<int>()});
 
     return entries;
 }

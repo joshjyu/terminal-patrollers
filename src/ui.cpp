@@ -551,6 +551,7 @@ void showLeaderboard(
 
     showControls("Press any key to continue.");
     refresh();
+    flushinp();
     getch();
 }
 
