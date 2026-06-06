@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +18,9 @@ void renderMap(
 std::vector<std::pair<int, int>> getRoadTiles(
     const std::vector<std::string> &mapGrid);
 
+std::vector<std::pair<int, int>> getLargestRoadComponent(
+    const std::vector<std::string> &mapGrid);
+
 struct Player {
     int y;
     int x;
@@ -30,6 +34,7 @@ struct Patroller {
 struct Entities {
     Player player;
     std::vector<Patroller> patrollers;
+    std::pair<int, int> exit;
 };
 
 Entities generateEntities(

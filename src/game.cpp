@@ -38,6 +38,56 @@ std::vector<std::pair<int, int>> getRoadTiles(
     return roads;
 }
 
+/// @brief Finds the largest connected group of road tiles using BFS.
+///
+/// @param mapGrid The 2D map to scan.
+/// @return Road tile positions belonging to the largest connected component.
+std::vector<std::pair<int, int>> getLargestRoadComponent(
+    const std::vector<std::string> &mapGrid) {
+    int rows = mapGrid.size();
+    int cols = rows > 0 ? (int)mapGrid[0].size() : 0;
+
+    std::vector<std::vector<bool>> visited(
+        rows, std::vector<bool>(cols, false));
+
+    const int dy[] = {-1, 1, 0, 0};
+    const int dx[] = {0, 0, -1, 1};
+
+    std::vector<std::pair<int, int>> largest;
+
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < cols; col++) {
+            if (mapGrid[row][col] != '.' || visited[row][col]) continue;
+
+            std::vector<std::pair<int, int>> component;
+            std::queue<std::pair<int, int>> q;
+            q.push({row, col});
+            visited[row][col] = true;
+
+            while (!q.empty()) {
+                auto [r, c] = q.front();
+                q.pop();
+                component.push_back({r, c});
+
+                for (int d = 0; d < 4; d++) {
+                    int nr = r + dy[d];
+                    int nc = c + dx[d];
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols &&
+                        mapGrid[nr][nc] == '.' && !visited[nr][nc]) {
+                        visited[nr][nc] = true;
+                        q.push({nr, nc});
+                    }
+                }
+            }
+
+            if (component.size() > largest.size())
+                largest = std::move(component);
+        }
+    }
+
+    return largest;
+}
+
 /// @brief Generates player and patroller starting positions on road tiles.
 ///
 /// @param mapGrid The 2D map to scan for road tiles.
@@ -46,7 +96,10 @@ std::vector<std::pair<int, int>> getRoadTiles(
 /// @throws std::runtime_error if there are not enough road tiles.
 Entities generateEntities(
     const std::vector<std::string> &mapGrid, double density) {
-    auto roads = getRoadTiles(mapGrid);
+    // getLargestRoadComponent to determine roads that are connected.
+    // Prevents considering roads that are isolated from the rest of the map.
+    auto roads = getLargestRoadComponent(mapGrid);
+
     int numPatrollers = std::max(1, (int)(roads.size() * density));
     if ((int)roads.size() < numPatrollers + 1)
         throw std::runtime_error("Not enough road tiles to place entities.");
@@ -58,6 +111,17 @@ Entities generateEntities(
     entities.player = {roads[0].first, roads[0].second};
     for (int i = 1; i <= numPatrollers; i++)
         entities.patrollers.push_back({roads[i].first, roads[i].second});
+
+    // Exit square on road tile furthest from the player by Manhattan distance
+    int farthestDist = -1;
+    for (int i = numPatrollers + 1; i < (int)roads.size(); i++) {
+        int dist = abs(roads[i].first - entities.player.y) +
+                   abs(roads[i].second - entities.player.x);
+        if (dist > farthestDist) {
+            farthestDist = dist;
+            entities.exit = roads[i];
+        }
+    }
 
     return entities;
 }
@@ -77,8 +141,7 @@ bool isValidMove(
         targetY >= 0 && targetY < maxY && targetX >= 0 && targetX < maxX;
 
     // Valid if inBounds and target movement space is not an obstacle
-    return inBounds && mapGrid[targetY][targetX] != '#' &&
-           mapGrid[targetY][targetX] != 'X';
+    return inBounds && mapGrid[targetY][targetX] == '.';
 }
 
 /// @brief Calculates new coordinates based on the movement key pressed.
@@ -110,6 +173,7 @@ std::pair<int, int> calculateNewPos(int key, int currentY, int currentX) {
 /// @param mtx Mutex guarding patrollers.
 /// @param mapGrid The map used for collision checking.
 /// @param running The loop exits when the atomic flag is set to false.
+/// @param player The player avatar to prevent player and patroller collision.
 void runPatrollers(std::vector<Patroller> &patrollers,
     std::mutex &mtx,
     const std::vector<std::string> &mapGrid,
