@@ -117,6 +117,8 @@ bool runConfirmExit() {
         else if (key == KEY_ENTER || key == 10 || key == 13)
             // Returns True if select YES, otherwise False
             return currentSelection == 0;
+        else if (key == 27)
+            return false;
         else if (key == KEY_RESIZE)
             clear();
     }
@@ -152,7 +154,7 @@ int runLocationMenu(const std::vector<std::string> &names) {
             }
         }
 
-        showControls("[W][S] or [UP][DOWN] to select  |  [ENTER] to confirm");
+        showControls("[W][S] or [UP][DOWN] to select, [ENTER] to confirm");
         refresh();
         int key = getch();
 
@@ -164,16 +166,126 @@ int runLocationMenu(const std::vector<std::string> &names) {
                 std::min((int)names.size() - 1, currentSelection + 1);
         else if (key == KEY_ENTER || key == 10 || key == 13)
             return currentSelection;
+        else if (key == 27)
+            return -1;
         else if (key == KEY_RESIZE)
             clear();
     }
 }
 
+/// @brief Draws and handles the options menu.
+///
+/// @param settings The settings object to read from and write to.
+void runOptionsMenu(Settings &settings) {
+    int currentSelection = 0;
+    const int numOptions = 2;
+
+    while (true) {
+        clear();
+        std::string title = "OPTIONS";
+        auto [titleY, titleX] = getCenteredCoords(title.size(), -4);
+        mvaddstr(titleY, titleX, title.c_str());
+
+        std::string modeVal = settings.darkMode ? "ON" : "OFF";
+        std::string densityVal =
+            std::to_string(settings.patrollerDensity).substr(0, 4);
+        std::string opts[numOptions] = {
+            "Dark Mode:           < " + modeVal + " >",
+            "Patroller Density:   < " + densityVal + " >",
+        };
+
+        for (int i = 0; i < (int)numOptions; i++) {
+            auto [y, x] = getCenteredCoords(opts[i].size(), -1 + i);
+
+            // Highlight the selection
+            if (i == currentSelection) {
+                attron(A_REVERSE);
+                mvaddstr(y, x, opts[i].c_str());
+                attroff(A_REVERSE);
+            } else {
+                mvaddstr(y, x, opts[i].c_str());
+            }
+        }
+
+        showControls("[W][S] to select, [A][D] to adjust, [ENTER] to confirm, "
+                     "[ESC] to return");
+        refresh();
+
+        int key = getch();
+
+        if (key == KEY_UP || key == 'w' || key == 'W')
+            currentSelection = std::max(0, currentSelection - 1);
+        else if (key == KEY_DOWN || key == 's' || key == 'S')
+            currentSelection = std::min(numOptions - 1, currentSelection + 1);
+        else if (key == KEY_LEFT || key == 'a' || key == 'A') {
+            if (currentSelection == 0) {
+                settings.darkMode = !settings.darkMode;
+                initializeColors(settings.darkMode);
+            } else if (currentSelection == 1)
+                settings.patrollerDensity =
+                    std::max(0.01, settings.patrollerDensity - 0.01);
+        } else if (key == KEY_RIGHT || key == 'd' || key == 'D') {
+            if (currentSelection == 0) {
+                settings.darkMode = !settings.darkMode;
+                initializeColors(settings.darkMode);
+            } else if (currentSelection == 1)
+                settings.patrollerDensity =
+                    std::min(0.15, settings.patrollerDensity + 0.01);
+        } else if (key == KEY_ENTER || key == 10 || key == 13)
+            return;
+        else if (key == 27)
+            return;
+        else if (key == KEY_RESIZE)
+            clear();
+    }
+}
+
+/// @brief Draws and handles the How to Play screen.
+void runHowToPlay() {
+    clear();
+    std::string title = "HOW TO PLAY";
+    auto [titleY, titleX] = getCenteredCoords(title.size(), -9);
+    attron(A_BOLD);
+    mvaddstr(titleY, titleX, title.c_str());
+    attroff(A_BOLD);
+
+    auto printBold = [&](const std::string &s, int offset) {
+        auto [y, x] = getCenteredCoords(s.size(), offset);
+        attron(A_BOLD);
+        mvaddstr(y, x, s.c_str());
+        attroff(A_BOLD);
+    };
+    auto printLine = [&](const std::string &s, int offset) {
+        auto [y, x] = getCenteredCoords(s.size(), offset);
+        mvaddstr(y, x, s.c_str());
+    };
+
+    printBold("1. NAVIGATE", -7);
+    printLine(
+        "Use [W][A][S][D] or arrow keys to move through the streets.", -6);
+    printBold("2. EVADE", -4);
+    printLine(
+        "Avoid patrollers [P]. Magenta tiles show their detection range.", -3);
+    printLine("If a patroller reaches an adjacent tile, you are caught.", -2);
+    printBold("3. ESCAPE", 0);
+    printLine("Reach the exit tile [E] to escape and win.", 1);
+
+    printBold("MAP LEGEND", 3);
+    printLine("@  Player          P  Patroller      E  Exit", 4);
+    printLine("#  Building        .  Road", 5);
+    printLine("~  Water           ^  Forest", 6);
+
+    showControls("Press any key to return.");
+    refresh();
+    getch();
+}
+
 /// @brief Draws and handles the main menu.
 ///
-/// @return Index of the selected option (0 for Play, 1 for Quit).
+/// @return Index of the selected option.
 int runMainMenu() {
-    std::vector<std::string> options = {"PLAY", "QUIT"};
+    std::vector<std::string> options = {
+        "PLAY", "HOW TO PLAY", "OPTIONS", "QUIT"};
     int currentSelection = 0; // Default PLAY
 
     while (true) {
@@ -206,7 +318,7 @@ int runMainMenu() {
             }
         }
 
-        showControls("[W][S] or [UP][DOWN] to select  |  [ENTER] to confirm");
+        showControls("[W][S] or [UP][DOWN] to select, [ENTER] to confirm");
         refresh();
         int key = getch();
 
@@ -222,61 +334,134 @@ int runMainMenu() {
     }
 }
 
-/// @brief Displays the caught/game over screen.
-void showCaughtScreen() {
-    clear();
-    std::string title = "YOU WERE CAUGHT";
-    std::string prompt = "Press any key to return to the menu.";
-    auto [titleY, titleX] = getCenteredCoords(title.size(), -1);
-    auto [promptY, promptX] = getCenteredCoords(title.size(), 1);
+/// @brief Draws and handles the pause menu.
+///
+/// @param settings The settings object passed to the options menu.
+/// @return A PauseResult indicating what to do after closing.
+PauseResult runPauseMenu(Settings &settings) {
+    std::vector<std::string> options = {
+        "RESUME GAME", "EXIT TO MAIN MENU", "EXIT GAME"};
+    int currentSelection = 0;
 
-    attron(A_BOLD);
-    mvaddstr(titleY, titleX, title.c_str());
-    attroff(A_BOLD);
-    mvaddstr(promptY, promptX, prompt.c_str());
-    refresh();
-    napms(1000); // Sleep for 1 second to prevent accidental exit
-    getch();
+    while (true) {
+        clear();
+
+        std::string title = "PAUSED";
+        auto [titleY, titleX] = getCenteredCoords(title.size(), -5);
+        attron(A_BOLD);
+        mvaddstr(titleY, titleX, title.c_str());
+        attroff(A_BOLD);
+
+        for (int i = 0; i < (int)options.size(); i++) {
+            std::string label =
+                (i == currentSelection) ? "> " + options[i] : "  " + options[i];
+            auto [y, x] = getCenteredCoords(label.size(), -2 + (i * 2));
+            if (i == currentSelection) {
+                attron(A_REVERSE);
+                mvaddstr(y, x, label.c_str());
+                attroff(A_REVERSE);
+            } else {
+                mvaddstr(y, x, label.c_str());
+            }
+        }
+
+        showControls("[W][S] or [UP][DOWN] to select, [ENTER] to confirm");
+        refresh();
+
+        int key = getch();
+
+        if (key == 27)
+            return PauseResult::Resume;
+        else if (key == KEY_UP || key == 'w' || key == 'W')
+            currentSelection = std::max(0, currentSelection - 1);
+        else if (key == KEY_DOWN || key == 's' || key == 'S')
+            currentSelection =
+                std::min((int)options.size() - 1, currentSelection + 1);
+        else if (key == KEY_ENTER || key == 10 || key == 13) {
+            if (currentSelection == 0) return PauseResult::Resume;
+            if (currentSelection == 1) return PauseResult::ExitToMenu;
+            if (currentSelection == 2) return PauseResult::ExitGame;
+        } else if (key == KEY_RESIZE)
+            clear();
+    }
 }
 
-/// @brief Displays the escaped/win screen.
-void showEscapedScreen() {
-    clear();
-    std::string title = "YOU ESCAPED!";
-    std::string prompt = "Press any key to return to the menu.";
-    auto [titleY, titleX] = getCenteredCoords(title.size(), -1);
-    auto [promptY, promptX] = getCenteredCoords(title.size(), 1);
+/// @brief Handles a generic game over screen.
+///
+/// @param title The text to be displayed as the title of the game over screen.
+static EndResult runEndScreen(const std::string &title) {
+    std::vector<std::string> options = {
+        "RESTART", "RETURN TO MAIN MENU", "EXIT GAME"};
+    int currentSelection = 0;
+    napms(1000);
 
-    attron(A_BOLD);
-    mvaddstr(titleY, titleX, title.c_str());
-    attroff(A_BOLD);
-    mvaddstr(promptY, promptX, prompt.c_str());
-    refresh();
-    napms(1000); // Sleep for 1 second to prevent accidental exit
-    getch();
+    while (true) {
+        clear();
+        auto [titleY, titleX] = getCenteredCoords(title.size(), -5);
+        attron(A_BOLD);
+        mvaddstr(titleY, titleX, title.c_str());
+        attroff(A_BOLD);
+
+        for (int i = 0; i < (int)options.size(); i++) {
+            std::string label =
+                (i == currentSelection) ? "> " + options[i] : "  " + options[i];
+            auto [y, x] = getCenteredCoords(label.size(), -2 + (i * 2));
+
+            if (i == currentSelection) {
+                attron(A_REVERSE);
+                mvaddstr(y, x, label.c_str());
+                attroff(A_REVERSE);
+            } else {
+                mvaddstr(y, x, label.c_str());
+            }
+        }
+
+        showControls("[W][S] or [UP][DOWN] to select, [ENTER] to confirm");
+        refresh();
+
+        int key = getch();
+
+        if (key == KEY_UP || key == 'w' || key == 'W')
+            currentSelection = std::max(0, currentSelection - 1);
+        else if (key == KEY_DOWN || key == 's' || key == 'S')
+            currentSelection =
+                std::min((int)options.size() - 1, currentSelection + 1);
+        else if (key == KEY_ENTER || key == 10 || key == 13) {
+            if (currentSelection == 0) return EndResult::Restart;
+            if (currentSelection == 1) return EndResult::ExitToMenu;
+            if (currentSelection == 2) return EndResult::ExitGame;
+        } else if (key == KEY_RESIZE)
+            clear();
+    }
 }
+EndResult showCaughtScreen() { return runEndScreen("YOU WERE CAUGHT"); }
+EndResult showEscapedScreen() { return runEndScreen("YOU ESCAPED"); }
 
 /// @brief Initializes color pairs and sets the window background.
-void initializeColors() {
+///
+/// @param darkMode Boolean that enables or disables dark mode.
+void initializeColors(bool darkMode) {
     start_color();
 
-    // If user's terminal can change colors,
-    // define white and black
+    // If user's terminal can change colors, define white and black
     if (can_change_color()) {
         init_color(COLOR_BLACK, 0, 0, 0);
         init_color(COLOR_WHITE, 1000, 1000, 1000);
     }
 
+    int fg = darkMode ? COLOR_WHITE : COLOR_BLACK;
+    int bg = darkMode ? COLOR_BLACK : COLOR_WHITE;
+
     // Pair 1: Map elements and standard text
-    init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    init_pair(1, fg, bg);
     // Pair 2: Player avatar @
-    init_pair(2, COLOR_GREEN, COLOR_WHITE);
+    init_pair(2, COLOR_GREEN, bg);
     // Pair 3: Patroller avatar P
-    init_pair(3, COLOR_RED, COLOR_WHITE);
+    init_pair(3, COLOR_RED, bg);
     // Pair 4: Patroller detection radius
-    init_pair(4, COLOR_RED, COLOR_WHITE);
+    init_pair(4, COLOR_MAGENTA, bg);
     // Pair 5: Exit tile E
-    init_pair(5, COLOR_CYAN, COLOR_WHITE);
+    init_pair(5, COLOR_CYAN, bg);
 
     bkgd(COLOR_PAIR(1));
 }

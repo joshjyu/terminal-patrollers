@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ncurses.h>
+#include <queue>
 #include <random>
 #include <stdexcept>
 #include <string>

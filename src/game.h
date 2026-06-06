@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <mutex>
-#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
