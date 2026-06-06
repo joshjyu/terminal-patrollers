@@ -1,9 +1,12 @@
 #include "game.h"
 #include "map_service.h"
 #include "ui.h"
+#include <algorithm>
 #include <functional>
 #include <mutex>
 #include <ncurses.h>
+#include <random>
+#include <stdexcept>
 #include <thread>
 
 /// @brief App entry point.
@@ -40,13 +43,26 @@ int main() {
                 continue;
             }
 
-            // Generate patrollers
+            // Generate patrollers and player on road tiles
+            auto roads = getRoadTiles(map);
+            if (roads.size() < 4) {
+                showErrorScreen("Not enough road tiles to place entities.");
+                continue;
+            }
+
+            std::mt19937 rng(std::random_device{}());
+            std::shuffle(roads.begin(), roads.end(), rng);
+
+            Player player = {roads[0].first, roads[0].second};
+            std::vector<Patroller> patrollers = {
+                {roads[1].first, roads[1].second},
+                {roads[2].first, roads[2].second},
+                {roads[3].first, roads[3].second}};
+
             int maxY, maxX;
-            std::vector<Patroller> patrollers = {{5, 5}, {15, 15}, {25, 3}};
+
             std::mutex patrollerMtx;
             std::atomic<bool> patrollerRunning{true};
-
-            Player player = {2, 2}; // Player's avatar origin
 
             std::thread patrollerThread(runPatrollers,
                                         std::ref(patrollers),

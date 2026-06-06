@@ -12,7 +12,6 @@ bool isValidMove(const std::vector<std::string> &mapGrid,
 
 std::pair<int, int> calculateNewPos(int key, int currentY, int currentX);
 
-const std::vector<std::string> &getTestMap();
 void renderMap(const std::vector<std::string> &mapGrid,
                int originY,
                int originX);
@@ -32,3 +31,6 @@ void runPatrollers(std::vector<Patroller> &patrollers,
                    const std::vector<std::string> &mapGrid,
                    std::atomic<bool> &running,
                    const Player &player);
+
+std::vector<std::pair<int, int>>
+getRoadTiles(const std::vector<std::string> &mapGrid);
