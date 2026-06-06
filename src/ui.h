@@ -1,5 +1,6 @@
 #pragma once
 
+#include "leaderboard_service.h"
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,3 +26,5 @@ EndResult showCaughtScreen();
 EndResult showEscapedScreen();
 void renderHUD(double patrollerDensity, int elapsedSeconds);
 std::string runUsernameEntry();
+void showLeaderboard(
+    const std::string &locationName, const std::vector<LeaderEntry> &entries);

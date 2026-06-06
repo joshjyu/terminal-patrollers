@@ -63,6 +63,12 @@ ProfileData loadProfileData(
     data.userId = userId;
     data.username = username;
 
+    auto metaRes = cpr::Get(cpr::Url{kProfileUrl + "/profiles/" + userId});
+    if (metaRes.status_code == 200) {
+        auto metaJson = nlohmann::json::parse(metaRes.text);
+        if (metaJson.contains("username")) data.username = metaJson["username"];
+    }
+
     auto res = cpr::Get(
         cpr::Url{kProfileUrl + "/profiles/" + userId + "/apps/" + kAppId});
 

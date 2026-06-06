@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <ncurses.h>
 #include <string>
 #include <vector>
@@ -497,6 +498,60 @@ std::string runUsernameEntry() {
             clear();
         }
     }
+}
+
+/// @brief Displays the top scores leaderboard for a location.
+///
+/// @param locationName The location name shown in the title.
+/// @param entries Ranked entries from getTopScores(), best time first.
+void showLeaderboard(
+    const std::string &locationName, const std::vector<LeaderEntry> &entries) {
+    clear();
+
+    std::string title = "TOP 10 - " + locationName;
+    auto [titleY, titleX] = getCenteredCoords(title.size(), -6);
+    attron(A_BOLD);
+    mvaddstr(titleY, titleX, title.c_str());
+    attroff(A_BOLD);
+
+    std::string header = "  #   Player               Time  ";
+    auto [hY, hX] = getCenteredCoords(header.size(), -4);
+    attron(A_UNDERLINE);
+    mvaddstr(hY, hX, header.c_str());
+    attroff(A_UNDERLINE);
+
+    if (entries.empty()) {
+        std::string none = "No scores recorded yet.";
+        auto [nY, nX] = getCenteredCoords(none.size(), -2);
+        mvaddstr(nY, nX, none.c_str());
+    }
+
+    for (int i = 0; i < (int)entries.size(); i++) {
+        int mins = entries[i].seconds / 60;
+        int secs = entries[i].seconds % 60;
+        std::string timeStr = std::to_string(mins) + ":" +
+                              (secs < 10 ? "0" : "") + std::to_string(secs);
+
+        // Truncate player name to fit column width
+        std::string name = entries[i].player.substr(0, 20);
+        // Pad to fixed width for alignment
+        name.resize(20, ' ');
+
+        char line[40];
+        std::snprintf(line,
+            sizeof(line),
+            "  %-2d  %s  %s  ",
+            i + 1,
+            name.c_str(),
+            timeStr.c_str());
+
+        auto [y, x] = getCenteredCoords(std::string(line).size(), -2 + i);
+        mvaddstr(y, x, line);
+    }
+
+    showControls("Press any key to continue.");
+    refresh();
+    getch();
 }
 
 /// @brief Initializes color pairs and sets the window background.
