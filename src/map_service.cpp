@@ -12,7 +12,8 @@ static const int kTileSizeM = 15;
 static const std::string kDefaultTerrain = "building";
 
 static const std::vector<Location> kLocations = {
-    {"MacArthur Park, Los Angeles", "34.059556, -118.274917"}};
+    {"MacArthur Park, Los Angeles", "34.059200528495374, -118.27754153023417"},
+    {"Oregon State University", "44.55969291229167, -123.28307986218597"}};
 
 /// @brief Returns the hardcoded list of selectable game locations.
 ///
@@ -24,13 +25,13 @@ const std::vector<Location> &getLocations() { return kLocations; }
 /// @param terrain The terrain type string returned by micromap.
 /// @return A single character representing the terrain tile.
 static char terrainToChar(const std::string &terrain) {
-    if (terrain == "wall") return 'X';
+    if (terrain == "wall") return '#';
     if (terrain == "building") return '#';
     if (terrain == "road") return '.';
     if (terrain == "water") return '~';
-    if (terrain == "grass") return ',';
+    if (terrain == "grass") return '.';
     if (terrain == "forest") return '^';
-    return '.';
+    return '#';
 }
 
 /// @brief Fetches a real-world map via microgeo and micromap.
