@@ -1,11 +1,11 @@
 #include "game.h"
 #include "map_service.h"
+#include "profile_service.h"
 #include "ui.h"
 #include <chrono>
 #include <functional>
 #include <mutex>
 #include <ncurses.h>
-#include <stdexcept>
 #include <thread>
 
 /// @brief App entry point.
@@ -18,7 +18,37 @@ int main() {
     noecho();
     curs_set(0);
     keypad(stdscr, TRUE);
+
     Settings settings;
+    ProfileData profileData;
+
+    std::string userId = loadUserId();
+    if (userId.empty()) {
+        std::string username = runUsernameEntry();
+        showLoadingScreen("Creating profile...");
+        try {
+            userId = createProfile(username);
+            saveUserId(userId);
+            profileData.userId = userId;
+            profileData.username = username;
+        } catch (const std::exception &e) {
+            showErrorScreen(
+                std::string("Failed to create profile: ") + e.what());
+            endwin();
+            return 1;
+        }
+    } else {
+        showLoadingScreen("Loading profile...");
+        try {
+            profileData = loadProfileData(userId, "");
+        } catch (const std::exception &e) {
+            showErrorScreen(std::string("Failed to load profile: ") + e.what());
+            profileData.userId = userId;
+        }
+    }
+
+    settings.darkMode = profileData.darkMode;
+    settings.patrollerDensity = profileData.patrollerDensity;
     initializeColors(settings.darkMode);
 
     bool exitGame = false;
@@ -47,6 +77,8 @@ int main() {
                 showErrorScreen(std::string("Failed to load map: ") + e.what());
                 continue;
             }
+
+            std::string locationName = locations[locSelection].name;
 
             bool restart = true;
             while (restart && !exitGame) {
@@ -188,23 +220,43 @@ int main() {
                 patrollerRunning = false;
                 patrollerThread.join();
 
+                int finalElapsed =
+                    (int)std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now() - startTime)
+                        .count();
+
                 EndResult endResult = EndResult::ExitToMenu;
                 if (!exitGame) {
-                    if (result == GameResult::Caught)
-                        endResult = showCaughtScreen();
-                    else if (result == GameResult::Escaped)
+                    if (result == GameResult::Escaped) {
                         endResult = showEscapedScreen();
+                        auto it = profileData.bestTimes.find(locationName);
+                        if (it == profileData.bestTimes.end() ||
+                            finalElapsed < it->second) {
+                            profileData.bestTimes[locationName] = finalElapsed;
+                            try {
+                                saveProfileData(profileData);
+                            } catch (...) {
+                            }
+                        }
+                    } else if (result == GameResult::Caught) {
+                        endResult = showCaughtScreen();
+                    }
+                    if (endResult == EndResult::Restart)
+                        restart = true;
+                    else if (endResult == EndResult::ExitGame)
+                        exitGame = true;
                 }
-                if (endResult == EndResult::Restart)
-                    restart = true;
-                else if (endResult == EndResult::ExitGame)
-                    exitGame = true;
             }
-
         } else if (selection == 1) {
             runHowToPlay();
         } else if (selection == 2) {
             runOptionsMenu(settings);
+            profileData.darkMode = settings.darkMode;
+            profileData.patrollerDensity = settings.patrollerDensity;
+            try {
+                saveProfileData(profileData);
+            } catch (...) {
+            }
         } else if (selection == 3) {
             if (runConfirmExit()) break;
         }

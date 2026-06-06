@@ -459,6 +459,46 @@ static EndResult runEndScreen(const std::string &title) {
 EndResult showCaughtScreen() { return runEndScreen("YOU WERE CAUGHT"); }
 EndResult showEscapedScreen() { return runEndScreen("YOU ESCAPED"); }
 
+/// @brief Displays a username entry screen and returns the entered name.
+///
+/// @return The username string entered by the user.
+std::string runUsernameEntry() {
+    std::string username;
+
+    while (true) {
+        clear();
+
+        std::string title = "WELCOME TO TERMINAL PATROLLERS";
+        std::string prompt = "Enter a username to get started:";
+        std::string input = "> " + username + "_";
+
+        auto [titleY, titleX] = getCenteredCoords(title.size(), -3);
+        auto [promptY, promptX] = getCenteredCoords(prompt.size(), -1);
+        auto [inputY, inputX] = getCenteredCoords(input.size(), 1);
+
+        attron(A_BOLD);
+        mvaddstr(titleY, titleX, title.c_str());
+        attroff(A_BOLD);
+        mvaddstr(promptY, promptX, prompt.c_str());
+        mvaddstr(inputY, inputX, input.c_str());
+
+        showControls("[ENTER] to confirm");
+        refresh();
+
+        int key = getch();
+
+        if (key == KEY_ENTER || key == 10 || key == 13) {
+            if (!username.empty()) return username;
+        } else if (key == KEY_BACKSPACE || key == 127 || key == 8) {
+            if (!username.empty()) username.pop_back();
+        } else if (key >= 32 && key <= 126 && (int)username.size() < 20) {
+            username += (char)key;
+        } else if (key == KEY_RESIZE) {
+            clear();
+        }
+    }
+}
+
 /// @brief Initializes color pairs and sets the window background.
 ///
 /// @param darkMode Boolean that enables or disables dark mode.

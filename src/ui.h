@@ -24,3 +24,4 @@ PauseResult runPauseMenu(Settings &settings);
 EndResult showCaughtScreen();
 EndResult showEscapedScreen();
 void renderHUD(double patrollerDensity, int elapsedSeconds);
+std::string runUsernameEntry();
