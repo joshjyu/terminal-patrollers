@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <thread>
 
+// Density = number of patrollers per 100 road tiles
+static const double kPatrollerDensity = 0.015;
+
 /// @brief App entry point.
 ///
 /// @return Exit status code.
@@ -43,10 +46,10 @@ int main() {
                 continue;
             }
 
-            // Generate patrollers and player on road tiles
+            // Generate entities on road tiles
             Entities entities;
             try {
-                entities = generateEntities(map, 0.03);
+                entities = generateEntities(map, kPatrollerDensity);
             } catch (const std::exception &e) {
                 showErrorScreen(e.what());
                 continue;
@@ -54,6 +57,8 @@ int main() {
 
             Player player = entities.player;
             std::vector<Patroller> patrollers = entities.patrollers;
+            auto exitPos = entities.exit;
+            GameResult result = GameResult::Playing;
 
             int maxY, maxX;
 
@@ -73,7 +78,7 @@ int main() {
             timeout(100);
 
             // Main game loop
-            while (true) {
+            while (result == GameResult::Playing) {
                 getmaxyx(stdscr, maxY, maxX);
 
                 // Camera tracking with player centered
@@ -88,22 +93,51 @@ int main() {
 
                 renderMap(map, originY, originX);
 
-                // Lock patroller thread to write patroller movement
+                const int dy[] = {-1, 1, 0, 0};
+                const int dx[] = {0, 0, -1, 1};
+
                 {
+                    // Lock patroller thread to write patroller movement
                     std::lock_guard<std::mutex> lock(patrollerMtx);
                     for (const auto &p : patrollers) {
-                        attron(COLOR_PAIR(3));
+                        for (int d = 0; d < 4; d++) {
+                            int ny = p.y + dy[d];
+                            int nx = p.x + dx[d];
+                            if (ny >= 0 && ny < (int)map.size() && nx >= 0 &&
+                                nx < (int)map[0].size() && map[ny][nx] == '.') {
+                                // Highlight patroller adjacent danger squares
+                                attron(COLOR_PAIR(4) | A_REVERSE);
+                                mvaddch(
+                                    originY + ny, originX + nx, map[ny][nx]);
+                                attroff(COLOR_PAIR(4) | A_REVERSE);
+                            }
+                        }
+
+                        // LOSE CONDITION
+                        if (checkDetection(patrollers, player))
+                            result = GameResult::Caught;
+
+                        attron(COLOR_PAIR(3) | A_REVERSE);
                         mvaddch(originY + p.y, originX + p.x, 'P');
-                        attroff(COLOR_PAIR(3));
+                        attroff(COLOR_PAIR(3) | A_REVERSE);
                     }
                 }
 
-                // Render avatar
-                attron(COLOR_PAIR(2));
+                // Render player avatar
+                attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
                 mvaddch(originY + player.y, originX + player.x, '@');
-                attroff(COLOR_PAIR(2));
+                attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+
+                // Render exit tile
+                attron(COLOR_PAIR(5) | A_BOLD | A_REVERSE);
+                mvaddch(originY + exitPos.first, originX + exitPos.second, 'E');
+                attroff(COLOR_PAIR(5) | A_BOLD | A_REVERSE);
 
                 refresh();
+
+                // Win check
+                if (player.y == exitPos.first && player.x == exitPos.second)
+                    result = GameResult::Escaped;
 
                 int key = getch();
                 if (key == 27) break; // ESC returns to main menu
@@ -122,9 +156,14 @@ int main() {
                 }
             }
 
-            timeout(-1); // Restore blocking after hitting ESC
+            timeout(-1);
             patrollerRunning = false;
             patrollerThread.join();
+
+            if (result == GameResult::Caught)
+                showCaughtScreen();
+            else if (result == GameResult::Escaped)
+                showEscapedScreen();
 
         } else if (selection == 1) {
             if (runConfirmExit()) break;
